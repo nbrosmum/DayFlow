@@ -1,0 +1,2 @@
+import type { MetadataRoute } from 'next';
+export default function manifest(): MetadataRoute.Manifest { return { name: 'DayFlow Personal Planner', short_name: 'DayFlow', description: 'Tasks, time blocks, routines, and reflection in one calm daily plan.', start_url: '/', display: 'standalone', background_color: '#fbfcf9', theme_color: '#315c4b', icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }] }; }
