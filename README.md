@@ -6,7 +6,7 @@ The goal is an open source **native mobile app** built with **React Native + Exp
 
 ## Current status
 
-This repository currently contains a **web UI prototype**, not a working native mobile app.
+This repository contains a **native Expo app in `mobile/`** and a separate web UI prototype in the root folder. The native app has functional Today, Tasks, Focus, and Settings screens. Without Supabase credentials it runs as an explicitly labelled in-memory preview.
 
 - The prototype uses React, TypeScript, Next.js APIs, and the Vinext/Vite toolchain.
 - You can add tasks and toggle completion in memory. Changes do not survive a page reload.
@@ -14,31 +14,30 @@ This repository currently contains a **web UI prototype**, not a working native 
 - The "Plan day" dialog contains a static example. It does not call an AI service.
 - A web manifest and service worker are present. They do not provide native installation, persistent task storage, or reliable scheduled phone reminders.
 - Drizzle schemas and Cloudflare D1 helpers exist, but the task UI is not connected to them.
-- React Native, Expo, Supabase login, and cloud task storage are **planned**, not implemented. The native app will use Supabase as its only task database.
+- The native app implements task creation/editing/deletion, search, completion, planned dates/times, a recoverable focus timer, session history, account forms, reminders, and JSON backup. Supabase is its only task database. Connect a project using [the mobile setup guide](mobile/README.md); live cloud writes and phone notifications need verification with that project and a real device.
 
-## Planned first version
+## First-version implementation
 
-- [ ] Add, edit, delete, and complete tasks.
-- [ ] Set a planned date, priority, and estimated duration.
-- [ ] View today's tasks and planned time blocks.
-- [ ] Run a focus timer with a default 25-minute session.
-- [ ] Schedule local reminders with notification permission.
-- [ ] Add Supabase email/password login.
-- [ ] Save each account's tasks and focus sessions in Supabase.
-- [ ] Restrict access to the account's own data with Row Level Security.
-- [ ] Show loading, connection errors, and retry options.
-- [ ] Review completed tasks and daily focus minutes.
-- [ ] Export and restore a JSON backup.
+- [x] Add, edit, delete, and complete tasks.
+- [x] Set a planned date, priority, and estimated duration.
+- [x] View today's tasks and planned time blocks.
+- [x] Run a focus timer with a default 25-minute session.
+- [x] Implement local reminders with notification permission (device testing pending).
+- [x] Implement Supabase email/password login and cloud task/session storage (live project testing pending).
+- [x] Provide ownership-based Row Level Security policies (live verification pending).
+- [x] Show loading, connection errors, and retry options.
+- [x] Review completed tasks and daily focus minutes.
+- [x] Export and restore a JSON backup.
 - [ ] Install a standalone Android app for personal use.
 
 After the first version works:
 
-- [ ] Refresh cloud data when returning to the app or using another device.
+- [x] Refresh cloud data when returning to the app or pulling to refresh.
 - [ ] Handle simultaneous edits and prevent duplicate submissions.
 - [ ] Add recurring routines and a weekly review.
 - [ ] Test and build for iOS.
 
-## Planned technology
+## Technology
 
 | Part | Tool | Purpose |
 | --- | --- | --- |
@@ -83,7 +82,7 @@ First exercise: create three tasks in JavaScript and print only unfinished tasks
 
 ## Working with this repository
 
-The following commands start the **existing web prototype**, not the planned native app.
+The following commands start the **existing web prototype**. Native app instructions are in [mobile/README.md](mobile/README.md).
 
 Prerequisites: Git, npm, and a Node.js LTS release satisfying the current package requirement of Node.js 22.13.0 or newer.
 
@@ -107,17 +106,17 @@ npm run db:generate
 
 The database helper expects a Cloudflare D1 binding. The existing web hosting configuration is specific to the prototype's toolchain; it is not an Expo or Vercel deployment setup.
 
-### Starting the native app later
+### Running the native app
 
-Keep the prototype for reference and create the native app in a separate `mobile/` folder:
+The native starter is in a separate `mobile/` folder. Run it with:
 
 ```bash
-npx create-expo-app@latest mobile
 cd mobile
-npx expo start
+npm ci
+npm start
 ```
 
-These are future setup steps. The `mobile/` folder does not exist yet. Select the current template and SDK using the [Expo setup guide](https://docs.expo.dev/get-started/create-a-project/), then commit the generated lockfile.
+The app includes React, React Native, Expo Router, TypeScript, Supabase, device reminders, and backup tools. No Supabase credentials are configured yet. See [mobile/README.md](mobile/README.md) for setup, cloud configuration, checks, and the source file map. The home screen is now `mobile/src/app/(tabs)/index.tsx`; the former blank starter screen has been replaced.
 
 Use Expo Go for early learning where supported. Use a development build when testing native configuration, then create a standalone Android build for personal installation. Test reminders and timer recovery on a real phone.
 
