@@ -2,7 +2,7 @@
 
 A personal time management project: plan your day, finish important tasks, and track focused work.
 
-The goal is an open source **native mobile app** built with **React Native + Expo**, with **SQLite** for offline storage and **Supabase** for optional login and cloud sync. Android is the first target; iOS comes later.
+The goal is an open source **native mobile app** built with **React Native + Expo**, with **Supabase Auth + PostgreSQL** for login and all persistent task and focus-session data. Android is the first target; iOS comes later.
 
 ## Current status
 
@@ -14,7 +14,7 @@ This repository currently contains a **web UI prototype**, not a working native 
 - The "Plan day" dialog contains a static example. It does not call an AI service.
 - A web manifest and service worker are present. They do not provide native installation, persistent task storage, or reliable scheduled phone reminders.
 - Drizzle schemas and Cloudflare D1 helpers exist, but the task UI is not connected to them.
-- React Native, Expo, SQLite on the phone, Supabase login, and cloud sync are **planned**, not implemented.
+- React Native, Expo, Supabase login, and cloud task storage are **planned**, not implemented. The native app will use Supabase as its only task database.
 
 ## Planned first version
 
@@ -23,17 +23,18 @@ This repository currently contains a **web UI prototype**, not a working native 
 - [ ] View today's tasks and planned time blocks.
 - [ ] Run a focus timer with a default 25-minute session.
 - [ ] Schedule local reminders with notification permission.
-- [ ] Save tasks and focus sessions offline.
+- [ ] Add Supabase email/password login.
+- [ ] Save each account's tasks and focus sessions in Supabase.
+- [ ] Restrict access to the account's own data with Row Level Security.
+- [ ] Show loading, connection errors, and retry options.
 - [ ] Review completed tasks and daily focus minutes.
 - [ ] Export and restore a JSON backup.
 - [ ] Install a standalone Android app for personal use.
 
-After the offline version works:
+After the first version works:
 
-- [ ] Add Supabase email/password login.
-- [ ] Store each account's tasks and focus sessions in Supabase.
-- [ ] Sync offline changes when the connection returns.
-- [ ] Handle duplicate uploads, conflicts, deletions, and sign-out.
+- [ ] Refresh cloud data when returning to the app or using another device.
+- [ ] Handle simultaneous edits and prevent duplicate submissions.
 - [ ] Add recurring routines and a weekly review.
 - [ ] Test and build for iOS.
 
@@ -44,8 +45,8 @@ After the offline version works:
 | Language | JavaScript, then TypeScript | Learn the foundations, then add types |
 | Mobile UI | React Native + Expo | Native Android and iOS screens |
 | Navigation | Expo Router | Move between screens |
-| Offline database | SQLite through expo-sqlite | Keep data on the phone |
-| Cloud backend | Supabase Auth + PostgreSQL | Optional login and cross-device data |
+| Authentication | Supabase Auth | Sign in to a personal account |
+| Database | Supabase PostgreSQL | Store tasks and focus sessions in the cloud |
 | Reminders | expo-notifications | Schedule notifications locally |
 | Development | Node.js LTS + npm | Run tooling and manage dependencies |
 | Version history | Git + GitHub | Track progress and share source |
@@ -54,9 +55,11 @@ Node.js runs development tools and can support a future API. The native app itse
 
 ## Architecture
 
-The offline version saves changes to SQLite first. The app works without an account or internet connection.
+The native app connects directly to Supabase through its JavaScript client. Supabase Auth manages sign-in, and PostgreSQL stores tasks and focus sessions. Row Level Security restricts records to their owner.
 
-Later, a sync layer will send pending changes to Supabase and download cloud changes. Supabase does not automatically synchronize a local SQLite database; that behavior must be implemented.
+There is no local task database or offline write queue. Loading data after reopening the app and saving changes require an internet connection. Keep the current screen's data in memory, report failed saves clearly, and refresh from Supabase when the app returns to the foreground. Disable unsupported actions offline rather than claiming unsaved changes have been stored.
+
+Already scheduled local reminders can still fire without internet. A focus timer can continue using its known end time while the app remains active, but saving its result to Supabase requires a connection. Small device storage for authentication sessions or timer recovery may still be used; it is not a second task database.
 
 For the focus timer, store the session's end timestamp and calculate the remaining time when the app resumes. Do not rely on a JavaScript interval continuing while the phone is locked.
 
@@ -71,10 +74,10 @@ Allow about **8-10 weeks at one hour a day**, adjusting the pace as needed. Fini
 | Weeks 1-2 | JavaScript functions, arrays, objects, dates, promises, async/await | A task list that filters unfinished tasks |
 | Week 3 | Node.js, npm, modules, JSON files, Git, basic TypeScript | A command-line task manager that saves a JSON file |
 | Weeks 4-5 | React state and components, React Native layouts, Expo navigation | Today, Tasks, Focus, and Settings screens running on a phone |
-| Week 6 | SQLite tables, queries, and parameter binding | Tasks remain after closing and reopening the app |
+| Week 6 | Supabase login, PostgreSQL tables, Row Level Security | Sign in and create/read only the account's own tasks |
 | Week 7 | Timer lifecycle, notification permissions, local reminders | A focus session and a reminder tested on a real phone |
-| Week 8 | Supabase login, PostgreSQL, Row Level Security | Authenticated access to the account's cloud tasks |
-| Weeks 9-10 | Sync, backup/restore, debugging, Android builds | Offline changes sync and a standalone app installs on the phone |
+| Week 8 | Cloud updates, loading states, network errors, foreground refresh | Edit/delete tasks and save focus sessions with clear failure handling |
+| Weeks 9-10 | Backup/restore, account isolation, debugging, Android builds | Verify cloud persistence and install a standalone app on the phone |
 
 First exercise: create three tasks in JavaScript and print only unfinished tasks.
 
@@ -124,7 +127,7 @@ Windows supports Android development. Local iOS builds require macOS and Xcode. 
 
 No Supabase project or credentials are configured by this README.
 
-When cloud features are implemented:
+When the native app is implemented:
 
 1. Create a Supabase project and configure email/password authentication.
 2. Create task and focus-session tables with an owner `user_id`.
@@ -139,7 +142,7 @@ Follow the current [Supabase React Native guide](https://supabase.com/docs/guide
 
 ## Cost and deployment
 
-- **Offline app:** no backend hosting is needed.
+- **Backend:** Supabase hosts authentication and the database. A separate Node.js server is unnecessary for the first version.
 - **Supabase:** the hosted Free plan is $0 within its quotas. At the time of writing, it includes a 500 MB database and 1 GB file storage; inactive projects may pause after one week. Check [current pricing](https://supabase.com/pricing).
 - **Vercel:** optional for a future companion website or API. It is not required to install the native mobile app. Hobby is free for personal, non-commercial projects within its limits. See [Hobby rules](https://vercel.com/docs/plans/hobby).
 - **Android:** plan to build and install an APK for personal use; publishing to an app store is a separate step.
@@ -153,14 +156,15 @@ Supabase is open source and can be [self-hosted](https://supabase.com/docs/guide
 Before calling the native first version complete:
 
 - Add, edit, complete, and delete a task.
-- Close and reopen the app; saved changes remain.
-- Create a task with the phone offline.
+- Close and reopen the app online; saved changes are loaded from Supabase.
+- Turn off the connection; show a clear offline state and do not report failed changes as saved.
+- Restore the connection and retry; confirm only one record is created.
 - Lock the phone during a focus session; remaining time is correct on return.
 - Test reminder permission granted and denied.
 - Edit or delete a task; its old reminder is rescheduled or cancelled.
 - Export data, restore it, and check that tasks and focus sessions match.
-- When sync is added, reconnect after offline edits and confirm no duplicate records.
-- When login is added, sign out and confirm another account cannot see the previous account's local or cloud data.
+- Refresh on another signed-in device; confirm it shows the latest cloud data.
+- Sign out and confirm another account cannot see the previous account's in-memory or cloud data.
 
 ## Learning resources
 
@@ -169,7 +173,6 @@ Before calling the native first version complete:
 - [React learning guide](https://react.dev/learn)
 - [React Native documentation](https://reactnative.dev/docs/getting-started)
 - [Expo tutorial](https://docs.expo.dev/tutorial/introduction/)
-- [Expo SQLite](https://docs.expo.dev/versions/latest/sdk/sqlite/)
 - [Expo Notifications](https://docs.expo.dev/versions/latest/sdk/notifications/)
 - [Supabase documentation](https://supabase.com/docs)
 
